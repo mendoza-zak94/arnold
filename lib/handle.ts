@@ -22,7 +22,7 @@
 
 import * as db from './db';
 import * as tg from './telegram';
-import { allowedChatIds, need, opt } from './env';
+import { allowedChatIds, need } from './env';
 import { effectiveConfig, habitOverLimit, loadState } from './state';
 import { classify, hasAction } from './classify';
 import { record } from './record';
@@ -351,5 +351,3 @@ async function safeConfig(): Promise<ArnoldConfig | null> {
 }
 
 const msg = (err: unknown): string => (err instanceof Error ? err.message : String(err));
-
-export { opt };

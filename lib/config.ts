@@ -115,9 +115,13 @@ export function baseConfig(): ArnoldConfig {
   };
 }
 
-/** Age in years, derived so it never goes stale. */
+/**
+ * Age in years, derived from the birth year so it never goes stale.
+ * Uses the user's calendar, not the server's - on New Year's Eve those differ.
+ */
 export function age(c: ArnoldConfig, now = new Date()): number {
-  return now.getUTCFullYear() - c.profile.birthYear;
+  const year = Number(new Intl.DateTimeFormat('en-CA', { timeZone: c.timezone, year: 'numeric' }).format(now));
+  return year - c.profile.birthYear;
 }
 
 // --- unit handling ----------------------------------------------------------

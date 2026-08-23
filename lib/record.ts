@@ -12,11 +12,11 @@
  */
 
 import * as db from './db';
-import type { ArnoldConfig, HabitConfig } from './config-types';
+import type { ArnoldConfig, HabitConfig, StoredSettings } from './config-types';
 import type { ClassifyResult, UseTemplateInput } from './schema';
 import { estimateWorkoutKcal, habitKcal } from './energy';
 import { dayIn, hourIn, isDay } from './time';
-import { toCm, toKg } from './config';
+import { toCm } from './config';
 
 /** Weigh-ins after this hour are not treated as fasted. */
 const FASTED_UNTIL_HOUR = 10;
@@ -135,7 +135,7 @@ export async function record(
   // 3. Settings stated in passing ("I'm 183 tall").
   if (result.settings_update && Object.keys(result.settings_update).length) {
     try {
-      const saved = await db.saveSettings(result.settings_update as never);
+      const saved = await db.saveSettings(result.settings_update as StoredSettings);
       if (saved.length) out.items.push({ kind: 'settings', text: saved.join(', ') });
     } catch (err) {
       out.problems.push(`settings: ${message(err)}`);
@@ -433,5 +433,3 @@ function formatAmount(n: number): string {
 
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 const message = (err: unknown): string => (err instanceof Error ? err.message : String(err));
-
-export { toKg };

@@ -16,7 +16,7 @@ import type { ArnoldConfig } from './config-types';
 import { age, baseConfig, heightCm, targetWeightKg, withSettings } from './config';
 import { dayIn, daysAgo } from './time';
 import { adherence, trendState, weeklyRates, type Adherence, type TrendState } from './trend';
-import { calorieTarget, dayBalance, proteinTarget, type DayBalance } from './energy';
+import { calorieTarget, dayBalance, fatEquivalentGrams, proteinTarget, type DayBalance } from './energy';
 import { decide, strengthDirection, type Recommendation, type StrengthDirection } from './coach';
 
 export interface HabitTotal {
@@ -151,7 +151,10 @@ export function stateBrief(s: State): string {
     b.expenditure === null
       ? 'Expenditure: unknown, no weight on file'
       : `Expenditure: ${b.expenditure} kcal (BMR ${b.bmr}, daily activity to ${b.baseline}, workouts net ${b.workoutNet})`,
-    b.balance === null ? 'Balance: unknown' : `Balance: ${b.balance} kcal (negative = deficit)`,
+    b.balance === null
+      ? 'Balance: unknown'
+      : `Balance: ${b.balance} kcal (negative = deficit), roughly `
+        + `${Math.abs(fatEquivalentGrams(b.balance) ?? 0)} g of body fat at 7000 kcal/kg`,
     s.calorieTarget === null ? 'Target: unknown' : `Calorie target: ${s.calorieTarget} kcal`,
     s.proteinTarget === null ? '' : `Protein target: ${s.proteinTarget} g`,
     t.trendKg === null

@@ -16,7 +16,6 @@ import type { TrendState } from './trend';
 import type { RecordResult } from './record';
 import { fmt, strings } from './i18n';
 import { showWeight, unitLabels } from './config';
-import { fatEquivalentGrams } from './energy';
 
 export interface ReceiptInput {
   config: ArnoldConfig;
@@ -142,15 +141,4 @@ function trendLine(
     : `${sign}${fmt(t.rateKgWeek, 2, lang)} ${unit}`;
   return `${s.trend}: ${showWeight(t.trendKg, c)} ${unit}, ${rate} ${s.perWeek} `
     + `(${sign}${fmt(t.ratePctWeek, 2, lang)} %). ${t.measureDays7} ${s.ofDays}.`;
-}
-
-/**
- * A short line for a weekly report or a milestone: what a calorie balance is
- * worth in body fat. Kept separate because it is a claim about physics, and it
- * should not appear on every single receipt as if it were a measurement.
- */
-export function fatEquivalentLine(balance: number | null, lang: string): string | null {
-  const grams = fatEquivalentGrams(balance);
-  if (grams === null || grams === 0) return null;
-  return `${grams > 0 ? '-' : '+'}${fmt(Math.abs(grams), 0, lang)} g body fat, in theory.`;
 }
