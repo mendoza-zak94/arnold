@@ -13,7 +13,7 @@
 
 import * as db from './db';
 import type { ArnoldConfig } from './config-types';
-import { age, baseConfig, heightCm, targetWeightKg, withSettings } from './config';
+import { age, baseConfig, heightCm, targetWeightKg, validate, withSettings } from './config';
 import { dayIn, daysAgo } from './time';
 import { adherence, trendState, weeklyRates, type Adherence, type TrendState } from './trend';
 import { calorieTarget, dayBalance, fatEquivalentGrams, proteinTarget, type DayBalance } from './energy';
@@ -44,14 +44,22 @@ export interface State {
   latestWeightKg: number | null;
 }
 
-/** The config with the settings you changed from the chat applied. */
+/**
+ * The config with the settings you changed from the chat applied.
+ *
+ * The merged result is validated again. Writes go through validateSettings, so
+ * a bad value should never be in the table - but a row edited by hand in the
+ * SQL editor would otherwise silently poison every calculation, and the file
+ * config is a complete configuration on its own.
+ */
 export async function effectiveConfig(): Promise<ArnoldConfig> {
   const base = baseConfig();
   try {
-    return withSettings(base, await db.loadSettings());
+    const merged = withSettings(base, await db.loadSettings());
+    return validate(merged);
   } catch {
-    // A settings table that cannot be read must not take the bot down; the file
-    // config is a complete configuration on its own.
+    // Either the settings table is unreachable or it contains something the
+    // bounds reject. Both mean: fall back to the file rather than compute on it.
     return base;
   }
 }

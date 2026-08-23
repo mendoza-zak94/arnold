@@ -191,7 +191,10 @@ Other things worth setting:
 | `models` | which Claude model does the logging and which does the coaching |
 
 You can also change facts from the chat: "I'm 183 tall", "target is 78 by
-Christmas". Those are stored in the database and win over the file.
+Christmas". Those are stored in the database and win over the file - after
+passing the same bounds check the file has to pass, so a garbled voice message
+gets rejected rather than quietly poisoning every calculation. `/settings` shows
+what is currently in effect and which values came from the chat.
 
 More in [`docs/CUSTOMIZE.md`](docs/CUSTOMIZE.md).
 

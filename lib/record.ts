@@ -16,7 +16,7 @@ import type { ArnoldConfig, HabitConfig, StoredSettings } from './config-types';
 import type { ClassifyResult, UseTemplateInput } from './schema';
 import { estimateWorkoutKcal, habitKcal } from './energy';
 import { dayIn, hourIn, isDay } from './time';
-import { toCm } from './config';
+import { toCm, validateSettings } from './config';
 
 /** Weigh-ins after this hour are not treated as fasted. */
 const FASTED_UNTIL_HOUR = 10;
@@ -133,10 +133,21 @@ export async function record(
   }
 
   // 3. Settings stated in passing ("I'm 183 tall").
+  //
+  // Checked against the same bounds as the config file before anything is
+  // stored. A transcription slip ("one eighty three" -> 1830) would otherwise
+  // reach the energy balance, and a wrong height there is invisible: the
+  // receipt shows the result, never the input it came from.
   if (result.settings_update && Object.keys(result.settings_update).length) {
     try {
-      const saved = await db.saveSettings(result.settings_update as StoredSettings);
-      if (saved.length) out.items.push({ kind: 'settings', text: saved.join(', ') });
+      const patch = result.settings_update as StoredSettings;
+      const problem = validateSettings(c, patch);
+      if (problem) {
+        out.problems.push(`settings rejected - ${problem.replace(/\n/g, ' ')}`);
+      } else {
+        const saved = await db.saveSettings(patch);
+        if (saved.length) out.items.push({ kind: 'settings', text: saved.join(', ') });
+      }
     } catch (err) {
       out.problems.push(`settings: ${message(err)}`);
     }

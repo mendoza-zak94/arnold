@@ -4,9 +4,10 @@
  * The order is chosen so that the things that must not be lost happen before the
  * things that can fail:
  *
- *   1. allow list        - a bot anyone can write to is a stranger writing into
+ *   1. claim the update  - Telegram resends anything it thinks failed, and a
+ *                          claim that stays open lets a killed turn be retried
+ *   2. allow list        - a bot anyone can write to is a stranger writing into
  *                          your health record
- *   2. duplicate check   - Telegram resends anything it thinks failed
  *   3. store the photo   - before it is classified, judged or understood. A
  *                          picture you sent must not be lost because a model
  *                          could not make sense of it.
@@ -30,6 +31,7 @@ import { buildReceipt } from './reply';
 import { answer, comment } from './advise';
 import { commentTrigger } from './coach';
 import { strings } from './i18n';
+import { age, unitLabels } from './config';
 import { languageHint, sttAvailable, SttUnavailableError, transcribe } from './stt';
 import { dayIn, daysAgo } from './time';
 import type { ArnoldConfig } from './config-types';
@@ -42,15 +44,52 @@ export interface HandleResult {
   detail?: string;
 }
 
+/**
+ * The public entry point. Holds the duplicate-protection claim around the turn:
+ * only a turn that actually produced an answer closes it. A turn killed by the
+ * platform's time limit leaves it open, so Telegram's retry gets another go
+ * instead of being discarded as a duplicate.
+ */
 export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
+  if (!update.message && !update.edited_message) {
+    return { status: 'ignored', detail: 'no message in update' };
+  }
+
+  try {
+    if (await db.claimUpdate(update.update_id)) {
+      return { status: 'ignored', detail: 'duplicate update' };
+    }
+  } catch {
+    // If the bookkeeping table is unreachable, carry on: a duplicate entry you
+    // can delete beats a lost one you never notice.
+  }
+
+  let result: HandleResult;
+  try {
+    result = await processUpdate(update);
+  } catch (err) {
+    // Should be unreachable: processUpdate catches its own failures. If it is
+    // reached, the user got no answer - so leave the claim OPEN on purpose and
+    // let Telegram's retry have another go.
+    await db.logError(update.message?.chat.id ?? null, '', `unhandled: ${msg(err)}`);
+    return { status: 'error', detail: msg(err) };
+  }
+
+  // Every path that reaches here answered the user - including the error paths,
+  // which send an honest message. Replaying those would double-book.
+  await db.completeUpdate(update.update_id);
+  return result;
+}
+
+async function processUpdate(update: tg.TgUpdate): Promise<HandleResult> {
   const message = update.message ?? update.edited_message;
   if (!message) return { status: 'ignored', detail: 'no message in update' };
 
   const token = need('TELEGRAM_BOT_TOKEN');
   const chatId = message.chat.id;
 
-  // 1. Allow list. Empty means nobody is allowed yet - and then the friendliest
-  //    thing to do is hand the user the value they need to fix it.
+  // Allow list. Empty means nobody is allowed yet - and then the friendliest
+  // thing to do is hand the user the value they need to fix it.
   const allowed = allowedChatIds();
   if (!allowed.includes(chatId)) {
     const config = await safeConfig();
@@ -59,16 +98,6 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
       `${s.notAllowed}\n\n${s.chatIdIs} ${chatId}\n\n`
       + 'Add it to TELEGRAM_ALLOWED_CHAT_IDS in your environment variables and redeploy.');
     return { status: 'rejected', detail: `chat ${chatId} not allowed` };
-  }
-
-  // 2. Telegram retries. The primary key on processed_updates does the work.
-  try {
-    if (await db.alreadyProcessed(update.update_id)) {
-      return { status: 'ignored', detail: 'duplicate update' };
-    }
-  } catch {
-    // If the bookkeeping table is unreachable, carry on: a duplicate entry you
-    // can delete beats a lost one you never notice.
   }
 
   let config: ArnoldConfig;
@@ -82,15 +111,23 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
   const s = strings(config.language);
   const rawText = (message.text ?? message.caption ?? '').trim();
 
-  // Slash commands, before any model is involved.
+  // Slash commands, before any model is involved. Inside the same failure frame
+  // as everything else: /week loads state and calls a model, and a failure there
+  // would otherwise leave the function with no reply, no error row and no trace.
   if (rawText.startsWith('/')) {
-    const handled = await runCommand(rawText, { token, chatId, config });
-    if (handled) return { status: 'ok', detail: 'command' };
+    try {
+      const handled = await runCommand(rawText, { token, chatId, config });
+      if (handled) return { status: 'ok', detail: 'command' };
+    } catch (err) {
+      await db.logError(chatId, rawText, `command: ${msg(err)}`);
+      await reply(token, chatId, `${s.errorSaving}\n${msg(err).slice(0, 200)}`);
+      return { status: 'error', detail: msg(err) };
+    }
   }
 
   await tg.sendTyping(token, chatId);
 
-  // 3. Resolve the content: text, photo or voice.
+  // Resolve the content: text, photo or voice.
   let text = rawText;
   let image: { bytes: Uint8Array; mediaType: string } | null = null;
   let source = 'telegram-text';
@@ -131,7 +168,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
 
   const today = dayIn(config.timezone);
 
-  // 4. Store the picture BEFORE anything is decided about it.
+  // Store the picture BEFORE anything is decided about it.
   let photoPath: string | null = null;
   if (image) {
     try {
@@ -141,7 +178,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     }
   }
 
-  // 5. Everything the classifier needs, in parallel.
+  // Everything the classifier needs, in parallel.
   let ctx;
   try {
     const [dayToday, dayYesterday, templates, assumptions, history, pending] = await Promise.all([
@@ -159,9 +196,9 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     return { status: 'error', detail: msg(err) };
   }
 
-  await db.addMessage(chatId, 'user', text || '(photo)');
+  await db.addMessage(chatId, 'user', text || '(photo)').catch(() => undefined);
 
-  // 6. Classify.
+  // Classify.
   let result;
   try {
     result = await classify({ text, image, context: ctx });
@@ -171,7 +208,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     return { status: 'error', detail: msg(err) };
   }
 
-  // 7. Not an entry: it is a question. Answer it instead of going quiet.
+  // Not an entry: it is a question. Answer it instead of going quiet.
   if (!hasAction(result)) {
     if (photoPath) {
       await db.recordPhoto({ day: today, path: photoPath, category: 'other', note: text || null })
@@ -189,7 +226,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     }
   }
 
-  // 8. Record.
+  // Record.
   let recorded;
   try {
     recorded = await record(result, { config, source, raw: text, photoPath });
@@ -224,7 +261,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     await db.clearPending(chatId).catch(() => undefined);
   }
 
-  // 9. The receipt. Deterministic, and out the door before any coaching.
+  // The receipt. Deterministic, and out the door before any coaching.
   let state;
   try {
     state = await loadState(config, recorded.day);
@@ -245,7 +282,7 @@ export async function handleUpdate(update: tg.TgUpdate): Promise<HandleResult> {
     return { status: 'error', detail: msg(err) };
   }
 
-  // 10. Optional second message. Never blocks the receipt, never repeats it.
+  // Optional second message. Never blocks the receipt, never repeats it.
   try {
     const trigger = commentTrigger({
       config,
@@ -285,6 +322,39 @@ async function runCommand(
 
   if (cmd === '/id') {
     await reply(token, chatId, `Chat ID: ${chatId}`);
+    return true;
+  }
+
+  // Without this there is no way to see the numbers every calculation rests on.
+  // A wrong height is invisible in a receipt - you only ever see the result.
+  if (cmd === '/settings' || cmd === '/profile') {
+    const stored = await db.loadSettings().catch(() => ({}));
+    const changed = new Set(Object.keys(stored));
+    const mark = (key: string) => (changed.has(key) ? ' (set from chat)' : '');
+    const u = unitLabels(config);
+    const lines = [
+      `Height: ${config.profile.height} ${u.length}${mark('height')}`,
+      `Born: ${config.profile.birthYear}${mark('birthYear')} (age ${age(config)})`,
+      `Sex: ${config.profile.sex}${mark('sex')}`,
+      `Daily activity factor: ${config.profile.activityFactor}${mark('activityFactor')}`,
+      `Goal: ${config.goal.direction}`
+        + (config.goal.targetWeight !== null ? `, target ${config.goal.targetWeight} ${u.weight}${mark('targetWeight')}` : '')
+        + (config.goal.targetDate ? ` by ${config.goal.targetDate}${mark('targetDate')}` : ''),
+      `Calorie target: ${config.goal.dailyCalories}${mark('dailyCalories')}`,
+      `Timezone: ${config.timezone}${mark('timezone')}, language ${config.language}${mark('language')}`,
+      `Tracking: ${[
+        config.trackers.meals && 'food',
+        config.trackers.weight && 'weight',
+        config.trackers.workouts && 'training',
+        config.trackers.measurements && 'measurements',
+        config.trackers.sleep && 'sleep',
+        ...config.trackers.habits.map((h) => h.label.toLowerCase()),
+      ].filter(Boolean).join(', ')}`,
+      '',
+      'Anything marked "(set from chat)" overrides arnold.config.ts. Correct one by',
+      'stating it again, for example "I am 183 tall".',
+    ];
+    await reply(token, chatId, lines.join('\n'));
     return true;
   }
 
@@ -329,7 +399,8 @@ function helpText(c: ArnoldConfig): string {
     '  "delete the duplicate" / "that was yesterday" / "it was only 200 g"',
     '  "my mayo is always the light one" - I remember that from then on',
     '',
-    'Commands: /today for the current state, /week for the weekly report, /id for your chat ID.',
+    'Commands: /today for the current state, /week for the weekly report,',
+    '/settings for the numbers I calculate with, /id for your chat ID.',
     '',
     'Ask me anything as well - if it is a question, you get an answer, not a database row.',
   ].filter(Boolean).join('\n');

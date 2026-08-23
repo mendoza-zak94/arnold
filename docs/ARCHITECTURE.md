@@ -183,7 +183,7 @@ One table per thing, plus a generic one for habits.
 | `settings` | what you changed from the chat; overrides the config file |
 | `messages` | short conversation memory |
 | `pending` | the one open follow-up question per chat |
-| `processed_updates` | Telegram retry protection |
+| `processed_updates` | Telegram retry protection - a claim, not a tombstone: `done` is set only after an answer went out, so a turn killed by the platform's time limit gets retried instead of being discarded |
 | `coach_events` | one trigger per code per day |
 | `corrections_log` | the previous state of everything ever corrected |
 | `photos` | what was stored, and which meal it belongs to |

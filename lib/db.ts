@@ -300,15 +300,49 @@ export async function clearPending(chatId: number): Promise<void> {
 }
 
 /**
- * True when this update_id was already handled. Telegram resends anything it
- * thinks failed, and without this check a retried dinner is booked twice.
- * The primary key does the work: a duplicate insert simply conflicts.
+ * How long an unfinished claim blocks a retry. Longer than any real turn
+ * (a photo plus a model call plus writes), shorter than Telegram's patience.
  */
-export async function alreadyProcessed(updateId: number): Promise<boolean> {
-  const res = await db().from('processed_updates').insert({ update_id: updateId });
+const CLAIM_STALE_MS = 90_000;
+
+/**
+ * Claim an update for processing. Returns true when it should be SKIPPED.
+ *
+ * Telegram resends anything it considers failed, so a naive "mark it and move
+ * on" books a slow dinner twice. But marking it up front and never revisiting
+ * is worse: if the function is killed mid-turn, the retry is thrown away as a
+ * duplicate and the entry is gone with no reply, no error row and no trace.
+ *
+ * So the row is a claim. Fresh claim -> skip, something is running. Finished
+ * claim -> skip, it is done. Stale, unfinished claim -> take it over and try
+ * again. A duplicate entry can be deleted in one sentence; a lost one cannot be
+ * noticed at all.
+ */
+export async function claimUpdate(updateId: number): Promise<boolean> {
+  const res = await db().from('processed_updates').insert({ update_id: updateId, done: false });
   if (!res.error) return false;
-  if (res.error.code === '23505') return true; // unique_violation
-  throw new Error(`processed_updates: ${res.error.message}`);
+  if (res.error.code !== '23505') throw new Error(`processed_updates: ${res.error.message}`);
+
+  const existing = await db().from('processed_updates')
+    .select('ts, done').eq('update_id', updateId).maybeSingle();
+  if (existing.error || !existing.data) return true; // cannot tell -> do not double book
+
+  const row = existing.data as { ts: string; done: boolean };
+  if (row.done) return true;
+  if (Date.now() - new Date(row.ts).getTime() < CLAIM_STALE_MS) return true;
+
+  await db().from('processed_updates')
+    .update({ ts: new Date().toISOString() }).eq('update_id', updateId);
+  return false;
+}
+
+/** Close the claim. Only a turn that produced an answer gets marked done. */
+export async function completeUpdate(updateId: number): Promise<void> {
+  try {
+    await db().from('processed_updates').update({ done: true }).eq('update_id', updateId);
+  } catch {
+    // A claim left open costs one possible duplicate, never a lost entry.
+  }
 }
 
 export async function coachEventFired(code: string, day: string): Promise<boolean> {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ConfigError, age, heightCm, showDistance, showLength, showWeight, targetWeightKg,
-  unitLabels, validate, withSettings,
+  unitLabels, validate, validateSettings, withSettings,
 } from '../lib/config';
 import type { ArnoldConfig } from '../lib/config-types';
 
@@ -103,6 +103,46 @@ describe('withSettings', () => {
 
   it('returns the base untouched when there is nothing stored', () => {
     expect(withSettings(valid, null)).toBe(valid);
+  });
+});
+
+describe('validateSettings', () => {
+  // The gate in front of everything a chat message can change. Without it, a
+  // transcription slip ("one eighty three" -> 1830) reaches the energy balance
+  // and produces a confident, permanently wrong number that nothing displays.
+  it('accepts a sane change', () => {
+    expect(validateSettings(valid, { height: 190 })).toBeNull();
+    expect(validateSettings(valid, { targetWeight: 75, targetDate: '2027-01-01' })).toBeNull();
+  });
+
+  it('rejects a height that came through as millimetres', () => {
+    const problem = validateSettings(valid, { height: 1830 });
+    expect(problem).toMatch(/height/);
+  });
+
+  it('rejects an activity factor with training baked in', () => {
+    expect(validateSettings(valid, { activityFactor: 4 })).toMatch(/activityFactor/);
+  });
+
+  it('rejects a starvation calorie target', () => {
+    expect(validateSettings(valid, { dailyCalories: 500 })).toMatch(/dailyCalories/);
+  });
+
+  it('rejects a malformed target date', () => {
+    expect(validateSettings(valid, { targetDate: 'christmas' })).toMatch(/targetDate/);
+  });
+
+  it('rejects an invalid timezone', () => {
+    expect(validateSettings(valid, { timezone: 'Berlin' })).toMatch(/timezone/);
+  });
+
+  it('applies exactly the same bounds as the config file', () => {
+    // Anything the file rejects must be rejected from the chat as well, or the
+    // validation is theatre.
+    for (const patch of [{ height: 1830 }, { activityFactor: 4 }, { dailyCalories: 500 }]) {
+      expect(validateSettings(valid, patch)).not.toBeNull();
+      expect(() => validate(withSettings(valid, patch))).toThrow(ConfigError);
+    }
   });
 });
 

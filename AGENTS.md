@@ -118,3 +118,6 @@ disappears when it is.
   every entry gets muted, and a muted coach has no effect at all.
 - **Receipts show `!` lines for partial failures.** Deliberate. Half a message
   logging is normal; hiding the half that did not is what would be wrong.
+- **A rejected settings change is a `!` line, not a stored value.** Deliberate.
+  Anything a chat message can change goes through the same bounds as the config
+  file (`validateSettings`), because a wrong height is invisible afterwards.

@@ -17,10 +17,15 @@ let client: Anthropic | null = null;
 
 function anthropic(): Anthropic {
   if (!client) {
+    // The whole turn has to fit inside the function's time limit (60 s on
+    // Vercel's free plan, see app/api/telegram/route.ts). Two attempts at 25 s
+    // leave room for the photo download, the context reads and the writes.
+    // A generous per-call timeout with retries on top would be killed by the
+    // platform instead of failing cleanly, which loses the entry.
     client = new Anthropic({
       apiKey: need('ANTHROPIC_API_KEY'),
-      maxRetries: 2,
-      timeout: 45_000,
+      maxRetries: 1,
+      timeout: 25_000,
     });
   }
   return client;

@@ -80,7 +80,14 @@ export function validate(c: ArnoldConfig): ArnoldConfig {
   return c;
 }
 
-/** Merge stored settings over the file config. Unknown keys are ignored. */
+/**
+ * Merge stored settings over the file config. Unknown keys are ignored.
+ *
+ * The result is NOT validated here - callers do that, and they must. A value
+ * that arrives from a chat message ("I'm one eighty three" transcribed as 1830)
+ * would otherwise reach the energy balance unchecked and produce a confident,
+ * invisible, permanently wrong number. See validateSettings below.
+ */
 export function withSettings(base: ArnoldConfig, stored: StoredSettings | null): ArnoldConfig {
   if (!stored) return base;
   return {
@@ -101,6 +108,22 @@ export function withSettings(base: ArnoldConfig, stored: StoredSettings | null):
       dailyCalories: stored.dailyCalories ?? base.goal.dailyCalories,
     },
   };
+}
+
+/**
+ * Would these settings still produce a valid configuration?
+ *
+ * Returns the problem as a string, or null when the patch is fine. This is the
+ * gate in front of everything a chat message can change: the same bounds the
+ * config file has to satisfy apply to a value spoken into a microphone.
+ */
+export function validateSettings(base: ArnoldConfig, patch: StoredSettings): string | null {
+  try {
+    validate(withSettings(base, patch));
+    return null;
+  } catch (err) {
+    return err instanceof ConfigError ? err.message : String(err);
+  }
 }
 
 /** The file config, validated. Throws on a broken config file. */

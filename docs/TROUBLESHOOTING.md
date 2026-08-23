@@ -108,19 +108,28 @@ were written with - correct them in the chat ("that was yesterday") or in SQL.
 
 ## No energy balance, only intake
 
-By design. Without a weight there is no basal metabolic rate, so there is no
-expenditure, no balance and no target. Log a weight and everything appears.
-
-If you have logged weights and it still says this, they are probably not marked
-fasted, which is what the trend uses:
+By design, and it means exactly one thing: there is no weight in the database at
+all. Any weight is enough - fasted or not - because the basal rate falls back to
+the most recent reading when there is no trend yet. Log one and the balance
+appears.
 
 ```sql
 select day, weight_kg, fasted from weights order by ts desc limit 10;
 ```
 
-`fasted` is set automatically for weigh-ins before 10:00 local time, and is
-`null` for weights added for another day unless you said when you measured
-("yesterday morning, fasted"). `null` deliberately does not count.
+If that returns rows and you still see the message, the write is failing rather
+than the calculation - check the `errors` table.
+
+## No trend line, although weights are logged
+
+Different problem, different cause. The trend counts **only** weigh-ins with
+`fasted = true`. That flag is set automatically before 10:00 local time, and
+stays `null` for a weight added for another day unless you said when you
+measured it ("yesterday morning, fasted"). `null` deliberately does not count:
+unknown is not the same as fasted, and one such entry is enough to drag the
+trend and every decision that hangs off it.
+
+The daily balance is unaffected by this - it uses the latest weight either way.
 
 ---
 

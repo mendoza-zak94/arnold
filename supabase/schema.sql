@@ -189,10 +189,18 @@ create table if not exists pending (
 
 -- Telegram retries a webhook it considers failed. Without this table a slow
 -- reply books your dinner twice.
+--
+-- `done` is what makes it a claim rather than a tombstone: a row is written
+-- before the work starts and flipped afterwards. If the function is killed
+-- mid-way (a model call that outlives the platform's time limit), the claim
+-- stays open, and Telegram's retry is allowed through instead of being
+-- discarded as a duplicate. Losing an entry silently is the worse failure.
 create table if not exists processed_updates (
   update_id bigint primary key,
-  ts        timestamptz not null default now()
+  ts        timestamptz not null default now(),
+  done      boolean not null default false
 );
+alter table processed_updates add column if not exists done boolean not null default false;
 
 -- Each coaching trigger fires at most once per day, otherwise Arnold repeats
 -- "you are over your target" after every further meal.

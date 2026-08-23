@@ -139,10 +139,14 @@ chmod 600 .env.local
 
 Leave `TELEGRAM_ALLOWED_CHAT_IDS` empty for now. Step 8 fills it in.
 
-Verify:
+Verify (works for either route - `npm run setup` keeps the comments from
+`.env.example`, so do not count lines, check the keys):
 
 ```bash
-grep -c '=' .env.local          # should be 7
+for k in TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET ANTHROPIC_API_KEY \
+         SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+  grep -qE "^$k=.+" .env.local && echo "$k ok" || echo "$k MISSING"
+done
 git check-ignore .env.local     # should print .env.local
 ```
 
@@ -314,7 +318,8 @@ Tell the user what they now have, concretely:
 > Done. Your bot is live at `<url>`.
 >
 > - Just talk to it: what you ate, what you weigh, what you trained.
-> - `/today` for the current state, `/week` for the weekly report.
+> - `/today` for the current state, `/week` for the weekly report,
+>   `/settings` for the numbers it calculates with.
 > - Corrections work in plain language: "delete that", "it was yesterday".
 > - It asks at most one question per entry, and your entry is already saved
 >   when it does.
