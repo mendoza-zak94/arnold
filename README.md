@@ -73,7 +73,7 @@ is the most common reason a deficit exists on paper and nowhere else.
 This is the fastest route if you have Claude Code, Cursor, or any coding agent.
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/arnold.git
+git clone https://github.com/cpo-labs/arnold.git
 cd arnold
 ```
 
@@ -94,7 +94,7 @@ Fifteen minutes, six steps.
 **1. Get the code and install**
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/arnold.git
+git clone https://github.com/cpo-labs/arnold.git
 cd arnold
 npm install
 ```

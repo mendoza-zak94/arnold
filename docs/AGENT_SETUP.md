@@ -59,7 +59,7 @@ Ask the user to do this:
 > 1. Open Telegram and search for **@BotFather**
 > 2. Send `/newbot`
 > 3. Give it a display name (anything, e.g. "Arnold")
-> 4. Give it a username - it must end in `bot`, e.g. `christians_arnold_bot`
+> 4. Give it a username - it must end in `bot`, e.g. `my_arnold_bot`
 > 5. Paste me the token it gives you. It looks like `12345678:AAH-Long-String`
 
 When you have the token, verify it before storing it:
