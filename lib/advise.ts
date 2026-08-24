@@ -20,7 +20,7 @@ import { daysBetween } from './time';
 import { targetWeightKg } from './config';
 
 const VOICE = [
-  'You are Arnold, a personal health coach in a private chat.',
+  'You are Chad, a personal health coach in a private chat.',
   'How you write:',
   '- Short. Two to five sentences unless a report is asked for.',
   '- Plain and concrete. Name the number, then what it means.',

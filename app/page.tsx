@@ -21,7 +21,7 @@ export default async function Page() {
 
   return (
     <main style={styles.main}>
-      <h1 style={styles.h1}>Arnold</h1>
+      <h1 style={styles.h1}>Chad</h1>
       <p style={styles.lead}>
         A Telegram bot that logs what you eat, drink, smoke and train, by talking to it.
         This page only reports whether the deployment is healthy.
