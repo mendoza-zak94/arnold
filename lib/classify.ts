@@ -12,7 +12,7 @@
  * number every single morning.
  */
 
-import { extract, imageBlock, type ContentBlock } from './claude';
+import { extract, imageBlock, type ContentBlock } from './model';
 import { buildTool, type ClassifyResult } from './schema';
 import {
   assumptionContext, conversationContext, languageInstruction, loggedContext,

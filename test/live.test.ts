@@ -6,7 +6,7 @@
  * understands the tool schema your config generated - and that is the one thing
  * worth checking with real money before trusting a setup.
  *
- * Run:  npm run live          (needs ANTHROPIC_API_KEY)
+ * Run:  npm run live          (needs OPENAI_API_KEY)
  *
  * Costs a fraction of a cent per case and writes to no database.
  */
@@ -15,9 +15,9 @@ import { describe, expect, it } from 'vitest';
 import { buildTool, type ClassifyResult } from '../lib/schema';
 import { systemPrompt, languageInstruction } from '../lib/prompt';
 import { baseConfig } from '../lib/config';
-import { extract } from '../lib/claude';
+import { extract } from '../lib/model';
 
-const live = process.env.ARNOLD_LIVE === '1' && Boolean(process.env.ANTHROPIC_API_KEY);
+const live = process.env.ARNOLD_LIVE === '1' && Boolean(process.env.OPENAI_API_KEY);
 
 const config = baseConfig();
 const tool = buildTool(config);

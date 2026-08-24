@@ -169,9 +169,9 @@ const config: ArnoldConfig = {
 
   models: {
     /** Fast, cheap, does the logging. Must support tool use and vision. */
-    classify: 'claude-sonnet-5',
+    classify: 'gpt-5.6-luna',
     /** Slower, smarter, writes the coaching. Only called when there is a reason. */
-    coach: 'claude-opus-5',
+    coach: 'gpt-5.6-terra',
   },
 };
 

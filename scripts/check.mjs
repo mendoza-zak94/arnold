@@ -26,7 +26,7 @@ head('Environment');
 const REQUIRED = [
   ['TELEGRAM_BOT_TOKEN', 'Create a bot with @BotFather and copy the token.'],
   ['TELEGRAM_WEBHOOK_SECRET', 'Any random string: openssl rand -hex 32'],
-  ['ANTHROPIC_API_KEY', 'console.anthropic.com -> API keys'],
+  ['OPENAI_API_KEY', 'platform.openai.com -> Chad project -> API keys'],
   ['SUPABASE_URL', 'Supabase -> Project Settings -> API -> Project URL'],
   ['SUPABASE_SERVICE_ROLE_KEY', 'Supabase -> Project Settings -> API -> service_role'],
 ];
@@ -113,34 +113,39 @@ if (process.env.TELEGRAM_BOT_TOKEN) {
   }
 }
 
-head('Anthropic');
-if (process.env.ANTHROPIC_API_KEY) {
+head('OpenAI');
+if (process.env.OPENAI_API_KEY) {
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const model = process.env.CHAD_MODEL || 'gpt-5.6-luna';
+    const res = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
+        authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.ARNOLD_MODEL || 'claude-sonnet-5',
-        max_tokens: 8,
-        messages: [{ role: 'user', content: 'Reply with the single word: ready' }],
+        model,
+        input: 'Reply with the single word: ready',
+        max_output_tokens: 64,
+        store: false,
       }),
     });
+
     if (res.ok) {
-      ok('API key works');
+      ok(`API key works with ${model}`);
     } else {
       const body = await res.text();
-      const model = process.env.ARNOLD_MODEL || 'claude-sonnet-5';
-      fail(`HTTP ${res.status}: ${body.slice(0, 160)}`,
+      fail(
+        `HTTP ${res.status}: ${body.slice(0, 160)}`,
         res.status === 404
-          ? `The model "${model}" is not available to this key. Set ARNOLD_MODEL to one that is.`
-          : res.status === 401 ? 'The key is wrong or revoked.' : 'Check your account credit.');
+          ? `The model "${model}" is not available to this project.`
+          : res.status === 401
+            ? 'The key is wrong, revoked or belongs to another project.'
+            : 'Check the Chad project credit and usage limits.',
+      );
     }
   } catch (err) {
-    fail(`cannot reach Anthropic: ${err.message}`);
+    fail(`cannot reach OpenAI: ${err.message}`);
   }
 }
 
