@@ -31,13 +31,13 @@ const config: ArnoldConfig = {
    * This decides which calendar day an entry belongs to. Get it wrong and your
    * late dinners land on tomorrow.
    */
-  timezone: 'Europe/Berlin',
+  timezone: 'Europe/Lisbon',
 
   profile: {
     /** Height in cm - or in inches when units is "imperial". Feeds the BMR formula. */
-    height: 180,
+    height: 175,
     /** Birth year is enough - Arnold derives the age itself and it stays right. */
-    birthYear: 1990,
+    birthYear: 1994,
     /**
      * 'male' | 'female'. This only feeds the Mifflin-St Jeor formula, which has
      * exactly these two constants. If neither fits, pick the one closer to your
@@ -61,7 +61,7 @@ const config: ArnoldConfig = {
      * them Arnold still tracks and comments, it just cannot tell you whether
      * you are on schedule.
      */
-    targetWeight: 80,
+    targetWeight: null,
     targetDate: null, // e.g. '2026-12-24'
     /**
      * Safe rate band as percent of body weight per week. Above 1 %/week lean
@@ -132,7 +132,22 @@ const config: ArnoldConfig = {
       {
         id: 'water',
         label: 'Water',
-        unit: 'glasses',
+        unit: 'ml',
+        dailyLimit: null,
+        goal: 'more',
+      },
+
+      {
+        id: 'coffee',
+        label: 'Coffee',
+        unit: 'cups',
+        dailyLimit: 4,
+        goal: 'less',
+      },
+      {
+        id: 'steps',
+        label: 'Steps',
+        unit: 'steps',
         dailyLimit: null,
         goal: 'more',
       },
