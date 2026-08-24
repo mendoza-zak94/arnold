@@ -31,7 +31,7 @@ Arnold Updated: grilled salmon, potatoes, green beans (640 kcal) (portion correc
 ```
 
 It runs on free tiers: Vercel for the code, Supabase for the database, and your
-own Anthropic API key for the intelligence. Setup takes about fifteen minutes,
+own OpenAI API key for the intelligence. Setup takes about fifteen minutes,
 and there is a walkthrough below that an LLM can run with you step by step.
 
 ---
@@ -70,7 +70,7 @@ is the most common reason a deficit exists on paper and nowhere else.
 
 ### Option A: let an LLM do it with you
 
-This is the fastest route if you have Claude Code, Cursor, or any coding agent.
+This is the fastest route if you have gpt-5.6-luna, gpt-5.6-terra, Cursor, or any coding agent.
 
 ```bash
 git clone https://github.com/cpo-labs/arnold.git
@@ -146,7 +146,7 @@ npm run webhook -- https://your-deployment.vercel.app
 npm run check
 ```
 
-`npm run check` connects to everything for real - Supabase, Telegram, Anthropic -
+`npm run check` connects to everything for real - Supabase, Telegram, OpenAI -
 and tells you exactly which thing is broken if one is. Then message your bot.
 
 **7. Let yourself in**
@@ -188,7 +188,7 @@ Other things worth setting:
 | `goal.weeklyRatePct` | the safe band. Arnold pushes back when you leave it, in either direction |
 | `trackers.*` | switch anything off and it disappears from the schema entirely |
 | `coach.enabled` | whether it comments beyond the receipt |
-| `models` | which Claude model does the logging and which does the coaching |
+| `models` | which OpenAI model does the logging and which does the coaching |
 
 You can also change facts from the chat: "I'm 183 tall", "target is 78 by
 Christmas". Those are stored in the database and win over the file - after
@@ -206,7 +206,7 @@ More in [`docs/CUSTOMIZE.md`](docs/CUSTOMIZE.md).
 |---|---|---|
 | **Vercel** | Hobby, free | one function per message, well inside the limit |
 | **Supabase** | free project | a few MB a year, plus photos |
-| **Anthropic** | pay as you go | roughly 1 to 3 cents per logged message; photos cost more than text |
+| **OpenAI** | pay as you go | roughly 1 to 3 cents per logged message; photos cost more than text |
 | **Telegram** | free | - |
 
 A normal week of tracking costs well under a euro in API calls. There is no
@@ -225,7 +225,7 @@ Telegram
    |  1. allow list        strangers get their chat ID, not write access
    |  2. duplicate check   Telegram retries; the entry must not double
    |  3. store the photo   BEFORE anything is judged about it
-   |  4. classify          Claude Sonnet, forced tool use, schema from your config
+   |  4. classify          OpenAI, forced tool use, schema from your config
    |  5. record            corrections first, then new rows
    |  6. receipt           deterministic, no second model call, sent immediately
    |  7. coaching          only when a rule fired, and never blocking the receipt
@@ -288,7 +288,7 @@ sees your messages.
 - Row level security is on for every table; the service role key never leaves
   the server.
 - Photos are in a private bucket, reachable only through time limited links.
-- Message text goes to Anthropic to be understood, and to your speech to text
+- Message text goes to OpenAI to be understood, and to your speech to text
   provider if you enable voice. That is the whole list.
 
 ---
