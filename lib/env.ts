@@ -24,11 +24,10 @@ const SPECS: Spec[] = [
   { key: 'TELEGRAM_BOT_TOKEN', required: true, hint: 'Create a bot with @BotFather in Telegram and copy the token.' },
   { key: 'TELEGRAM_WEBHOOK_SECRET', required: true, hint: 'Any random string; generate one with: openssl rand -hex 32' },
   { key: 'TELEGRAM_ALLOWED_CHAT_IDS', required: false, hint: 'Comma separated chat IDs. Empty means nobody can write yet - Arnold will tell you your ID.' },
-  { key: 'ANTHROPIC_API_KEY', required: true, hint: 'Get one at console.anthropic.com.' },
+  { key: 'OPENAI_API_KEY', required: true, hint: 'Create a project key at platform.openai.com. Used for interpretation, coaching and optional voice transcription.' },
   { key: 'SUPABASE_URL', required: true, hint: 'Supabase dashboard -> Project Settings -> API -> Project URL.' },
   { key: 'SUPABASE_SERVICE_ROLE_KEY', required: true, hint: 'Supabase dashboard -> Project Settings -> API -> service_role key. Server side only.' },
   { key: 'STT_PROVIDER', required: false, hint: "'openai', 'groq' or 'none'. Controls voice messages." },
-  { key: 'OPENAI_API_KEY', required: false, hint: 'Only needed when STT_PROVIDER=openai.' },
   { key: 'GROQ_API_KEY', required: false, hint: 'Only needed when STT_PROVIDER=groq.' },
   { key: 'CRON_SECRET', required: false, hint: 'Protects /api/cron/report. Vercel sets it for its own cron calls.' },
 ];

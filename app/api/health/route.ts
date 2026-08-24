@@ -99,12 +99,12 @@ export async function GET(): Promise<Response> {
     checks.push({ name: 'telegram-bot', ok: false, detail: message(err) });
   }
 
-  // Anthropic key: presence only, so a health check costs nothing.
-  checks.push({
-    name: 'anthropic',
-    ok: Boolean(opt('ANTHROPIC_API_KEY')),
-    detail: opt('ANTHROPIC_API_KEY') ? 'key present' : 'ANTHROPIC_API_KEY missing',
-  });
+  // OpenAI key: presence only, so a health check costs nothing.
+checks.push({
+  name: 'openai',
+  ok: Boolean(opt('OPENAI_API_KEY')),
+  detail: opt('OPENAI_API_KEY') ? 'key present' : 'OPENAI_API_KEY missing',
+});
 
   const ids = allowedChatIds();
   checks.push({

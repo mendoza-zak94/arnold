@@ -46,9 +46,9 @@ if (!values.CRON_SECRET) {
   ok('generated a cron secret for the weekly report');
 }
 
-head('3/5  Anthropic API key');
-info('console.anthropic.com -> API keys. This is what reads your photos and estimates calories.');
-values.ANTHROPIC_API_KEY = await ask('API key', { fallback: values.ANTHROPIC_API_KEY, secret: true });
+head('3/5  OpenAI API key');
+info('platform.openai.com -> Chad project -> API keys. This reads photos, interprets entries and writes coaching.');
+values.OPENAI_API_KEY = await ask('API key', { fallback: values.OPENAI_API_KEY, secret: true });
 
 head('4/5  Supabase');
 info('supabase.com -> new project (free tier is enough).');

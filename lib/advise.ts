@@ -12,7 +12,7 @@
  * recompute them from.
  */
 
-import { write, type ContentBlock, imageBlock } from './claude';
+import { write, type ContentBlock, imageBlock } from './model';
 import type { State } from './state';
 import { stateBrief } from './state';
 import { languageInstruction } from './prompt';
