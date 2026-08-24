@@ -387,7 +387,7 @@ async function runCommand(
 function helpText(c: ArnoldConfig): string {
   const habits = c.trackers.habits.map((h) => `${h.label.toLowerCase()} (${h.unit})`).join(', ');
   return [
-    'I am Arnold. Just tell me what you did - no keywords, no menus.',
+    'I am Chad. Just tell me what you did - no keywords, no menus.',
     '',
     'Examples:',
     '  "had 200 g of chicken with rice"',

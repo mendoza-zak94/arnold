@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'Arnold',
+  title: 'Chad',
   description: 'A Telegram bot that tracks food, body, training and habits by chatting with it.',
 };
 
