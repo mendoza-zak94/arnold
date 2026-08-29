@@ -95,7 +95,17 @@ export async function loadState(c: ArnoldConfig, day?: string): Promise<State> {
   };
 
   const habitTotals = habitTotalsFor(c, today.habits);
-  const balance = dayBalance(profile, today.meals, today.workouts, today.habits);
+  const measuredExpenditure = today.dailyMetrics
+  .find((m) => m.source === 'google_health' && m.calories_burned !== null)
+  ?.calories_burned ?? null;
+
+const balance = dayBalance(
+  profile,
+  today.meals,
+  today.workouts,
+  today.habits,
+  measuredExpenditure,
+);
 
   return {
     config: c,
@@ -157,8 +167,10 @@ export function stateBrief(s: State): string {
     `Day: ${s.day}`,
     `Eaten: ${b.intakeKcal} kcal (meals ${b.mealKcal}, other ${b.habitKcal}), protein ${b.proteinG} g`,
     b.expenditure === null
-      ? 'Expenditure: unknown, no weight on file'
-      : `Expenditure: ${b.expenditure} kcal (BMR ${b.bmr}, daily activity to ${b.baseline}, workouts net ${b.workoutNet})`,
+  ? 'Expenditure: unknown, no weight on file'
+  : b.expenditureSource === 'google_health'
+    ? `Expenditure: ${b.expenditure} kcal (measured total from Google Health; workouts are already included and must not be added again)`
+    : `Expenditure: ${b.expenditure} kcal (estimated from BMR ${b.bmr}, daily activity to ${b.baseline}, workouts net ${b.workoutNet})`,
     b.balance === null
       ? 'Balance: unknown'
       : `Balance: ${b.balance} kcal (negative = deficit), roughly `

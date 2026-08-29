@@ -70,6 +70,20 @@ create table if not exists measurements (
   source text not null
 );
 create index if not exists measurements_day_idx on measurements (day);
+-- Daily totals imported from a trusted external health dashboard.
+create table if not exists daily_metrics (
+  id                    bigint generated always as identity primary key,
+  ts                    timestamptz not null default now(),
+  day                   date not null,
+  calories_burned       real,
+  steps                 integer,
+  resting_heart_rate    real,
+  sleep_score           real,
+  source                text not null default 'google_health',
+  raw                   text,
+  unique (day, source)
+);
+create index if not exists daily_metrics_day_idx on daily_metrics (day);
 
 create table if not exists workouts (
   id           bigint generated always as identity primary key,
@@ -239,7 +253,7 @@ do $$
 declare t text;
 begin
   foreach t in array array[
-    'settings','meals','weights','measurements','workouts','workout_sets','sleep',
+    'settings','meals','weights','measurements','daily_metrics','workouts','workout_sets','sleep',
     'habit_entries','assumptions','templates','photos','messages','pending',
     'processed_updates','coach_events','corrections_log','errors'
   ] loop

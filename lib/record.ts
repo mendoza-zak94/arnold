@@ -22,7 +22,7 @@ import { toCm, validateSettings } from './config';
 const FASTED_UNTIL_HOUR = 10;
 
 export interface RecordedItem {
-  kind: 'meal' | 'weight' | 'measurement' | 'workout' | 'sleep' | 'habit' | 'correction' | 'assumption' | 'template' | 'settings';
+  kind: 'meal' | 'weight' | 'measurement' | 'daily_metrics' | 'workout' | 'sleep' | 'habit' | 'correction' | 'assumption' | 'template' | 'settings';
   text: string;
   id?: number;
 }
@@ -265,7 +265,44 @@ export async function record(
     }
   }
 
-  // 8. Workouts and their sets.
+    // 8. Daily totals read from Google Health/Fitbit screenshots.
+  if (result.daily_metrics) {
+    try {
+      const m = result.daily_metrics;
+      const row: Record<string, unknown> = {
+        day,
+        source: 'google_health',
+        raw: ctx.raw.slice(0, 500),
+      };
+      const labels: string[] = [];
+
+      if (Number.isFinite(m.calories_burned)) {
+        row.calories_burned = m.calories_burned;
+        labels.push(`${Math.round(m.calories_burned!)} kcal burned`);
+      }
+      if (Number.isFinite(m.steps)) {
+        row.steps = m.steps;
+        labels.push(`${Math.round(m.steps!)} steps`);
+      }
+      if (Number.isFinite(m.resting_heart_rate)) {
+        row.resting_heart_rate = m.resting_heart_rate;
+        labels.push(`${Math.round(m.resting_heart_rate!)} bpm resting`);
+      }
+      if (Number.isFinite(m.sleep_score)) {
+        row.sleep_score = m.sleep_score;
+        labels.push(`sleep score ${Math.round(m.sleep_score!)}`);
+      }
+
+      if (labels.length) {
+        const saved = await db.upsertDailyMetric(row);
+        out.items.push({ kind: 'daily_metrics', text: labels.join(', '), id: saved.id });
+      }
+    } catch (err) {
+      out.problems.push(`daily metrics: ${message(err)}`);
+    }
+  }
+
+  // 9. Workouts and their sets.
   for (const w of result.workouts ?? []) {
     try {
       const kcal = w.kcal ?? estimateWorkoutKcal(

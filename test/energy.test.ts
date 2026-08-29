@@ -50,6 +50,15 @@ describe('dayBalance', () => {
     expect(b.bmr).toBeNull();
   });
 
+  it('prefers measured Google Health expenditure without adding workouts again', () => {
+    const b = dayBalance(profile, meals, workouts, [], 2500);
+    expect(b.expenditure).toBe(2500);
+    expect(b.expenditureSource).toBe('google_health');
+    expect(b.balance).toBe(1400 - 2500);
+    expect(b.workoutNet).toBeNull();
+  });
+
+
   it('never reports a negative net for a workout', () => {
     const b = dayBalance(profile, [], [{ duration_min: 600, kcal: 10, kind: 'daily', description: 'walk' }]);
     expect(b.workoutNet).toBe(0);

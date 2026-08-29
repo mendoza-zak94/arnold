@@ -61,6 +61,19 @@ export interface WeightRow {
 export interface MeasurementRow {
   id: number; ts: string; day: string; kind: string; value: number; unit: string; source: string;
 }
+
+export interface DailyMetricRow {
+  id: number;
+  ts: string;
+  day: string;
+  calories_burned: number | null;
+  steps: number | null;
+  resting_heart_rate: number | null;
+  sleep_score: number | null;
+  source: string;
+  raw: string | null;
+}
+
 export interface WorkoutRow {
   id: number; ts: string; day: string; description: string; kind: string | null;
   duration_min: number | null; kcal: number | null; distance_km: number | null;
@@ -99,6 +112,7 @@ export interface DayData {
   workouts: WorkoutRow[];
   sleep: SleepRow[];
   habits: HabitRow[];
+  dailyMetrics: DailyMetricRow[];
 }
 
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }, what: string): T {
@@ -131,10 +145,11 @@ export async function saveSettings(patch: StoredSettings): Promise<string[]> {
 
 export async function dayData(day: string): Promise<DayData> {
   const d = db();
-  const [meals, weights, measurements, workouts, sleep, habits] = await Promise.all([
+  const [meals, weights, measurements, dailyMetrics, workouts, sleep, habits] = await Promise.all([
     d.from('meals').select('*').eq('day', day).order('ts'),
     d.from('weights').select('*').eq('day', day).order('ts'),
     d.from('measurements').select('*').eq('day', day).order('ts'),
+    d.from('daily_metrics').select('*').eq('day', day).order('ts'),
     d.from('workouts').select('*').eq('day', day).order('ts'),
     d.from('sleep').select('*').eq('day', day).order('ts'),
     d.from('habit_entries').select('*').eq('day', day).order('ts'),
@@ -144,6 +159,7 @@ export async function dayData(day: string): Promise<DayData> {
     meals: unwrap<MealRow[]>(meals, 'meals'),
     weights: unwrap<WeightRow[]>(weights, 'weights'),
     measurements: unwrap<MeasurementRow[]>(measurements, 'measurements'),
+    dailyMetrics: unwrap<DailyMetricRow[]>(dailyMetrics, 'daily metrics'),
     workouts: unwrap<WorkoutRow[]>(workouts, 'workouts'),
     sleep: unwrap<SleepRow[]>(sleep, 'sleep'),
     habits: unwrap<HabitRow[]>(habits, 'habits'),
@@ -212,6 +228,17 @@ async function insert<T>(table: string, row: Record<string, unknown>): Promise<T
 export const insertMeal = (row: Record<string, unknown>) => insert<MealRow>('meals', row);
 export const insertWeight = (row: Record<string, unknown>) => insert<WeightRow>('weights', row);
 export const insertMeasurement = (row: Record<string, unknown>) => insert<MeasurementRow>('measurements', row);
+export async function upsertDailyMetric(
+  row: Record<string, unknown>,
+): Promise<DailyMetricRow> {
+  const res = await db()
+    .from('daily_metrics')
+    .upsert(row, { onConflict: 'day,source' })
+    .select()
+    .single();
+  if (res.error) throw new Error(`upsert daily_metrics: ${res.error.message}`);
+  return res.data as DailyMetricRow;
+}
 export const insertWorkout = (row: Record<string, unknown>) => insert<WorkoutRow>('workouts', row);
 export const insertSleep = (row: Record<string, unknown>) => insert<SleepRow>('sleep', row);
 export const insertHabit = (row: Record<string, unknown>) => insert<HabitRow>('habit_entries', row);
