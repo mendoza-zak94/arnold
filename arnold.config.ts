@@ -126,7 +126,6 @@ const config: ArnoldConfig = {
         id: 'cigarettes',
         label: 'Cigarettes',
         unit: 'cigarettes',
-        dailyLimit: 0,
         goal: 'less',
       },
       {
