@@ -88,14 +88,18 @@ const cap = (t: string): string => (t ? t[0].toUpperCase() + t.slice(1) : t);
 
 function energyLine(input: ReceiptInput, s: ReturnType<typeof strings>, lang: string): string | null {
   const { balance: b } = input;
-  if (b.intakeKcal === 0 && b.workoutCount === 0) return null;
+  if (
+  b.intakeKcal === 0
+  && b.workoutCount === 0
+  && b.expenditureSource !== 'google_health'
+) return null;
 
   if (b.expenditure === null) {
     return `${s.today}: ${fmt(b.intakeKcal, 0, lang)} kcal ${s.intake}. ${s.noWeightYet}`;
   }
 
   const parts = [
-    `${s.today}: ${fmt(b.intakeKcal, 0, lang)} ${s.intake} / ${fmt(b.expenditure, 0, lang)} ${s.burned}`,
+    `${s.today}: ${fmt(b.intakeKcal, 0, lang)} ${s.intake} / ${fmt(b.expenditure, 0, lang)} ${s.burned} (${b.expenditureSource === 'google_health' ? 'Google Health' : 'estimated'})`,
   ];
 
   const balance = b.balance ?? 0;

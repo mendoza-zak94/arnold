@@ -50,6 +50,7 @@ const balance = (patch: Partial<DayBalance> = {}): DayBalance => ({
   restShare: 0,
   workoutNet: 0,
   expenditure: 2378,
+  expenditureSource: 'estimated',
   balance: -538,
   ...patch,
 });

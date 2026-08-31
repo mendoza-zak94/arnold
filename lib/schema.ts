@@ -121,6 +121,18 @@ export function buildTool(c: ArnoldConfig): ToolSpec {
     };
   }
 
+  props.daily_metrics = {
+  type: 'object',
+  description: 'Daily totals explicitly shown on a Google Health or Fitbit dashboard. '
+    + 'Do not estimate these values. calories_burned means the dashboard total calories burned '
+    + 'for the whole day, not workout calories or food calories.',
+  properties: {
+    calories_burned: { type: 'number' },
+    steps: { type: 'number' },
+    resting_heart_rate: { type: 'number' },
+    sleep_score: { type: 'number' },
+  },
+};
   if (t.workouts) {
     correctableTables.push('workouts');
     props.workouts = {
@@ -338,6 +350,12 @@ export interface WeightInput {
   weight_kg: number; body_fat_pct?: number; muscle_kg?: number; water_pct?: number; fasted?: boolean;
 }
 export interface MeasurementInput { kind: string; value: number; unit?: 'cm' | 'in' }
+export interface DailyMetricInput {
+  calories_burned?: number;
+  steps?: number;
+  resting_heart_rate?: number;
+  sleep_score?: number;
+}
 export interface SetInput { exercise: string; set_no: number; reps?: number; weight_kg?: number }
 export interface WorkoutInput {
   description: string; kind?: string; duration_min?: number; kcal?: number; distance_km?: number;
@@ -358,6 +376,7 @@ export interface UseTemplateInput {
 }
 
 export interface ClassifyResult {
+  daily_metrics?: DailyMetricInput;
   is_entry: boolean;
   day?: string;
   meals?: MealInput[];

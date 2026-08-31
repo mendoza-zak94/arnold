@@ -75,6 +75,7 @@ export interface DayBalance {
   restShare: number | null;
   workoutNet: number | null;
   expenditure: number | null;
+  expenditureSource: 'google_health' | 'estimated' | null;
   /** intake minus expenditure. Negative = deficit. null without a weight. */
   balance: number | null;
 }
@@ -84,6 +85,7 @@ export function dayBalance(
   meals: MealLike[],
   workouts: WorkoutLike[],
   habits: HabitLike[] = [],
+  measuredExpenditureKcal: number | null = null,
 ): DayBalance {
   const mealKcal = sum(meals.map((m) => m.kcal));
   const habitKcal = sum(habits.map((h) => h.kcal));
@@ -101,11 +103,36 @@ export function dayBalance(
     workoutCount: workouts.length,
   };
 
-  const b = profile ? bmr(profile) : null;
+    const b = profile ? bmr(profile) : null;
+  const measured = typeof measuredExpenditureKcal === 'number'
+    && Number.isFinite(measuredExpenditureKcal)
+    && measuredExpenditureKcal > 0
+    ? Math.round(measuredExpenditureKcal)
+    : null;
+
+  if (measured !== null) {
+    return {
+      ...base,
+      bmr: b,
+      baseline: null,
+      restShare: null,
+      workoutNet: null,
+      expenditure: measured,
+      expenditureSource: 'google_health',
+      balance: base.intakeKcal - measured,
+    };
+  }
+
   if (!profile || b === null) {
     return {
-      ...base, bmr: null, baseline: null, restShare: null, workoutNet: null,
-      expenditure: null, balance: null,
+      ...base,
+      bmr: null,
+      baseline: null,
+      restShare: null,
+      workoutNet: null,
+      expenditure: null,
+      expenditureSource: null,
+      balance: null,
     };
   }
 
@@ -121,8 +148,10 @@ export function dayBalance(
     restShare,
     workoutNet,
     expenditure,
+    expenditureSource: 'estimated',
     balance: base.intakeKcal - expenditure,
   };
+
 }
 
 /**
